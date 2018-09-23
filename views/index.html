@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>GitCheck</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link rel="stylesheet" type="text/css" media="all" href="css/styles.css">
+    <link href="css/scrolling-nav.css" rel="stylesheet">
+
+      <link rel="shortcut icon" href="http://d15dxvojnvxp1x.cloudfront.net/assets/favicon.ico">
+  <link rel="icon" href="http://d15dxvojnvxp1x.cloudfront.net/assets/favicon.ico">
+  
+  <script type="text/javascript" src="js/jquery-1.10.2.min.js"></script>
+  <script type="text/javascript" src="js/Chart.min.js"></script>
+
+  </head>
+
+  <body id="page-top">
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" id="mainNav">
+      <div class="container">
+        <a class="navbar-brand js-scroll-trigger" href="#page-top">GitCheck</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+          <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+              <a class="nav-link js-scroll-trigger" href="#about"><font size="+0">Ratings</font></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link js-scroll-trigger" href="#services"><font size="+0">Suggestions</font></a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <header class="bg-primary">
+      <div id="w">
+    <h1 align="center">Improve your code styling and see how you rank with GitCheck!</h1>
+    <p align="center"><font size="+1">Enter a single GitHub username below and click the button to score the profile.</font></p>
+    <div class="row">
+      <input type="text" name="ghusername" id="ghusername" placeholder="GitHub username..." style="margin:10px auto;padding:5px;font-size:20px">
+    </div>
+    
+    <div class="row">
+      <div style="margin:0 auto;margin-top: 10px;">
+      <a class="btn score-btn" href="#" id="ghsubmitbtn">Score!</a>
+      <form class="btn form-btn" action="#">
+        <select name="cars">
+          <option value="Python">Python</option>
+          <option value="Fortran">Fortran</option>
+          <option value="Java">Java</option>
+          <option value="C++">C++</option>
+          <option value="PHP">Node.js</option>
+          <option value="PHP">JavaScript</option>
+          <option value="PHP">PHP</option>
+        </select>
+      </form>
+    </div>
+      
+    </div>
+    <div id="ghapidata" class="clearfix"></div>
+  </div>
+<script type="text/javascript">
+$(function(){
+  $('#ghsubmitbtn').on('click', function(e){
+    e.preventDefault();
+    $('#ghapidata').html('<div id="loader"><img src="css/loader.gif" alt="loading..."></div>');
+    
+
+    document.getElementById("profile_score").innerHTML = "";
+    var username = $('#ghusername').val();
+    var requri   = 'https://api.github.com/users/'+username;
+    //var repouri  = 'https://api.github.com/users/'+username+'/repos';
+	
+	// Hard-coded "language:python" to restrict the repos to only those containing .py files, sorted in desc order by stars.
+	var repouri  = 'https://api.github.com/search/repositories?q=+user:' + username + '+language:python&sort=stars&order=desc';
+    
+    requestJSON(requri, function(json) {
+      if(json.message == "Not Found" || username == '') {
+        $('#ghapidata').html("<h2>No User Info Found</h2>");
+      }
+      
+      else {
+        // else we have a user and we display their info
+        var fullname   = json.name;
+        var username   = json.login;
+        var aviurl     = json.avatar_url;
+        var profileurl = json.html_url;
+        var location   = json.location;
+        var followersnum = json.followers;
+        var followingnum = json.following;
+        var reposnum     = json.public_repos;
+        
+        if(fullname == undefined) { fullname = username; }
+        
+        var outhtml = '<div align="center"><h2>'+fullname+' <span class="smallname">(@<a href="'+profileurl+'" target="_blank">'+username+'</a>)</span></h2></div>';
+        outhtml = outhtml + '<div style="text-align:center;"><div class="ghcontent"><div style="display:inline-block;"><div class="avi"><a href="'+profileurl+'" target="_blank"><img src="'+aviurl+'" width="80" height="80" alt="'+username+'"></a></div></div>';
+        outhtml = outhtml + '<h2 id="average_score"></h2>';
+        outhtml = outhtml + '<p>Followers: '+followersnum+' - Following: '+followingnum+'<br>Repos: '+reposnum+'</p></div></div>';
+        outhtml = outhtml + '<div class="repolist clearfix" align="center">';
+        
+        var repositories;
+        $.getJSON(repouri, function(json){
+          repositories = json.items;   
+          outputPageContent();                
+        });      
+        
+        
+        
+        function outputPageContent() {
+          if(repositories.length == 0) { outhtml = outhtml + '<p>No python repos!</p></div>'; }
+          else {
+            outhtml = outhtml + '<p><strong>Python Repos List:</strong></p> <div style="text-align:center;"><ul>';
+            $.each(repositories, function(index) {
+              outhtml = outhtml + '<li style="display:inline-block;"><a href="'+repositories[index].html_url+'" target="_blank">'+repositories[index].name + '</a></li>';
+            });
+            outhtml = outhtml + '</ul></div></div>';
+          }
+          $('#ghapidata').html(outhtml);
+        } // end outputPageContent()
+
+        document.getElementById("profile_score").innerHTML = '<img src="css/loader.gif" alt="loading...">';
+        $.ajax({
+          type: "POST",
+          url: "/" + username,
+          dataType: 'json',
+          success: function(scores){
+
+            document.getElementById("average_score").innerHTML = 'Overall Rating: <b>' + scores.average + '</b>';
+            console.log(scores);
+            var scoreshtml = '<div class="row">';
+            for(var i = 0; i < scores.repos.length; i++) {
+              
+              
+              
+              var repo = scores.repos[i];
+              scoreshtml += '<div class="col-lg-12 mb-6" style="margin-top: 15px;"><div class="card h-100"><h4 class="card-header"><font size="+2"><b>' + repo.name + '</b></font></h4><div class="card-body">' +
+                '<span class="outer-bar"><span class="inner-bar" style="width: ' + repo.score + '%;"></span><span class="bar-text">' + repo.score + '%</span></span>' + 
+                '<canvas id="myChart' + i + '"></canvas></div><div class="card-footer"><a href="#" class="btn btn-primary">Learn More</a></div></div></div>';
+ 
+                
+                
+                         
+            
+              }
+            scoreshtml += '</div>';
+            document.getElementById("profile_score").innerHTML = scoreshtml;
+            for(var i = 0; i < scores.repos.length; i++) {
+              var repo = scores.repos[i];
+
+              //for(var i = 0; i < scores.repos.length; i++) {
+              
+              
+              var ctx = document.getElementById("myChart" + i).getContext('2d');
+              
+              var myPieChart = new Chart(ctx,{
+                type: 'pie',
+                data: {
+                  labels: Object.keys(repo.categories),
+                  datasets : [{
+                    label : "Distribution of Errors",
+                    data : Object.keys(repo.categories).map(function(key) {
+                      return repo.categories[key];
+                    }),
+                    backgroundColor: [
+                    'rgb(255, 99, 132)',
+                    'rgb(54, 162, 235)',
+                    'rgb(255, 205, 86)',
+                    'rgb(75, 192, 192)',
+                    'rgb(255, 159, 64)',
+                    'rgb(153, 102, 255)',
+                    'rgb(201, 203, 207)',
+                  ],
+                  }]
+                },
+            
+                options:{
+                  scales: {
+                    xAxes: [{
+                      display: this.scalesdisplay,
+                      ticks: {
+                          beginAtZero:this.beginzero,
+                      }
+                  }],
+                  yAxes: [{
+                    display: this.scalesdisplay,
+                    ticks: {
+                        beginAtZero:this.beginzero,
+                    }
+                }]
+                }
+              }
+            });
+          }
+
+          // populate code suggestions
+          if(scores.messages) {
+            var suggestion_element = '<p>';
+            if(scores.messages.length >= 1) {
+              suggestion_element += getText(scores.messages[0][2], scores.messages[0]) + '<br><br>';
+            }
+            if(scores.messages.length >= 2) {
+              suggestion_element += getText(scores.messages[1][2], scores.messages[1]) + '<br><br>';
+            }
+            if(scores.messages.length >= 3) {
+              suggestion_element += getText(scores.messages[2][2], scores.messages[2]) + '<br><br>';
+            }
+            suggestion_element += '</p>';
+            
+            document.getElementById("profile_suggestions").innerHTML = suggestion_element;
+          }
+          
+          } // end of success functions
+        });
+
+      } // end else statement
+    }); // end requestJSON Ajax call
+  }); // end click event handler
+  
+  function requestJSON(url, callback) {
+    $.ajax({
+      url: url,
+      complete: function(xhr) {
+        callback.call(null, xhr.responseJSON);
+      }
+    });
+  }
+
+  function getText(categoryName, message) {
+    var result = '';
+    switch(categoryName) {
+      case 'Indentation':
+        result = 'Unfortunately, it seems that most of your projects do not follow the standard indendation guidelines. Errors like ' + message[1] + ' are pretty common in your repositories and we believe, getting to understand the proper indentation styles would really benefit you. Try to use 4 spaces per indentation level. Tabs should be used solely to remain consistent with code that is already indented with tabs. Continuation lines should align wrapped elements either vertically using Python\'s implicit line joining inside parentheses, brackets and braces, or using a hanging indent. When using a hanging indent the following should be considered; there should be no arguments on the first line and further indentation should be used to clearly distinguish itself as a continuation line.';
+        break;
+      case 'Whitespace':
+        result = 'After analyzing your projects, we suggest you too avoid extraneous whitespace in the following situations. Errors like ' + message[1] + ' are pretty common in your repositories and we believe, getting to understand the proper indentation styles would really benefit you. Immediately inside parentheses, brackets or braces. Between a trailing comma and a following close parenthesis. Immediately before a comma, semicolon, or colon. However, in a slice the colon acts like a binary operator, and should have equal amounts on either side (treating it as the operator with the lowest priority). In an extended slice, both colons must have the same amount of spacing applied. Exception: when a slice parameter is omitted, the space is omitted.';
+        break;
+      case 'Blank line':
+        result = 'Considering your python files, a good tip for you would be to use blank lines in functions, sparingly, to indicate logical sections. Errors like ' + message[1] + ' are pretty common in your repositories and we believe, getting to understand the proper indentation styles would really benefit you. Surround top-level function and class definitions with two blank lines. Method definitions inside a class are surrounded by a single blank line. Extra blank lines may be used (sparingly) to separate groups of related functions. Blank lines may be omitted between a bunch of related one-liners.';
+        break;
+      case 'Import':
+        result = 'Imports are always put at the top of the file, just after any module comments and docstrings, and before module globals and constants. Errors like ' + message[1] + ' are pretty common in your repositories and we believe, getting to understand the proper indentation styles would really benefit you. Standard guidelines regarding imports are as follows: Imports should usually be on separate lines. Imports should be grouped in the following order: Standard library import, Related third party imports, Local application/library specific imports. You should put a blank line between each group of imports. Absolute imports are recommended, as they are usually more readable and tend to be better behaved (or at least give better error messages) if the import system is incorrectly configured (such as when a directory inside a package ends up on sys.path). Standard library code should avoid complex package layouts and always use absolute imports. Implicit relative imports should never be used and have been removed in Python 3.';
+        break;
+      case 'Line length':
+        result = 'Limit all lines to a maximum of 79 characters. Errors like ' + message[1] + ' are pretty common in your repositories and we believe, getting to understand the proper indentation styles would really benefit you. For flowing long blocks of text with fewer structural restrictions (docstrings or comments), the line length should be limited to 72 characters. Some teams strongly prefer a longer line length. For code maintained exclusively or primarily by a team that can reach agreement on this issue, it is okay to increase the nominal line length from 80 to 100 characters (effectively increasing the maximum length to 99 characters), provided that comments and docstrings are still wrapped at 72 characters. The Python standard library is conservative and requires limiting lines to 79 characters (and docstrings/comments to 72).';
+        break;
+      case 'Statement':
+        result = 'While sometimes it\'s okay to put an if/for/while with a small body on the same line, never do this for multi-clause statements. Errors like ' + message[1] + ' are pretty common in your repositories and we believe, getting to understand the proper indentation styles would really benefit you. Also avoid folding such long lines. When combining an argument annotation with a default value, use spaces around the = sign (but only for those arguments that have both an annotation and a default). Compound statements (multiple statements on the same line) are generally discouraged.';
+        break;
+      default: 
+        result = 'To learn more about the style guidelines for coding in Python, please visit: https://www.python.org/dev/peps/pep-0008/.';  
+      }
+      return result;
+  }
+});
+
+
+
+</script>
+    </header>
+
+    <script type="text/javascript">
+    	function check(){
+    		var link = document.getElementById("git_profile").value;
+    		document.getElementById("profile_pic").src="https://help.github.com/assets/images/help/profile/identicon.png";
+    	}
+    </script>
+
+    <section id="about">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 mx-auto">
+            <h2>Repository Ratings:</h2>
+            <div id="profile_score">
+            <p class="lead">You haven't searched a profile yet.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="services" class="bg-light">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 mx-auto">
+            <h2>Code Suggestions:</h2>
+            <div id="profile_suggestions">
+            <p class="lead">You haven't searched a profile yet.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Plugin JavaScript -->
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+
+    <!-- Custom JavaScript for this theme -->
+    <script src="js/scrolling-nav.js"></script>
+
+  </body>
+
+</html>
