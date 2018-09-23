@@ -1,6 +1,8 @@
 # GitCheck
 
-Input your github profile link to get a code style score
+Input your github profile link to get a code style score and suggestions to improve your coding style.
+You can check the webapp out at http://checkgitout.com! 
+
 
 ## Setup
 ```
