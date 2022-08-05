@@ -21,7 +21,7 @@
     "express": "^4.16.2",
     "file-reader": "^1.1.1",
     "jquery": "^3.3.0",
-    "mongoose": "^5.0.0",
+    "mongoose": "^5.7.5",
     "mv": "^2.1.1",
     "node-cmd": "^3.0.0",
     "request": "^2.83.0",
